@@ -1,25 +1,21 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
-function Navbar() {
-  const navigate = useNavigate();
-
+export default function Navbar() {
   const logout = () => {
     localStorage.removeItem("token");
-    navigate("/login");
+    window.location = "/login";
   };
 
   return (
-    <div className="flex justify-between items-center px-8 py-4 bg-white shadow">
+    <div className="flex justify-between px-8 py-4 bg-white shadow">
       <h1 className="text-xl font-bold text-blue-600">Rental App</h1>
 
-      <div className="flex gap-6 items-center">
-        <Link to="/" className="hover:text-blue-500">Products</Link>
+      <div className="flex gap-6">
+        <Link to="/">Home</Link>
+        <Link to="/products">Products</Link>
         <Link to="/cart">Cart</Link>
         <Link to="/rentals">Rentals</Link>
-
-        <Link to="/admin" className="text-purple-600 font-semibold">
-          Admin
-        </Link>
+        <Link to="/admin/dashboard">Admin</Link>
 
         <button
           onClick={logout}
@@ -31,5 +27,3 @@ function Navbar() {
     </div>
   );
 }
-
-export default Navbar;

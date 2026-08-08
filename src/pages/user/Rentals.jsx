@@ -1,27 +1,22 @@
 import { useEffect, useState } from "react";
 import API from "../../services/api";
 
-function Rentals() {
-  const [rentals, setRentals] = useState([]);
+export default function Rentals() {
+  const [data, setData] = useState([]);
 
   useEffect(() => {
-    API.get("/rentals").then((res) => {
-      setRentals(res.data);
-    });
+    API.get("/rentals").then(res => setData(res.data));
   }, []);
 
   return (
-    <div className="p-10">
-      <h1>My Rentals</h1>
+    <div className="p-6">
+      {data.length === 0 && <p>No rentals 😢</p>}
 
-      {rentals.map((r) => (
-        <div key={r._id} className="border p-2 my-2">
-          <p>Product: {r.productId?.name}</p>
-          <p>Status: {r.status}</p>
+      {data.map(r => (
+        <div key={r._id} className="border p-3 mt-2">
+          {r.product?.name} - {r.status}
         </div>
       ))}
     </div>
   );
 }
-
-export default Rentals;

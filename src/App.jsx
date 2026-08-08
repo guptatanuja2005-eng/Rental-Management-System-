@@ -1,22 +1,23 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-// Auth
+import Navbar from "./components/Navbar";
+
+// AUTH
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 
-// User
+// USER
+import Home from "./pages/user/Home";
 import Products from "./pages/user/Products";
-import Cart from "./pages/user/Cart";
-import Checkout from "./pages/user/Checkout";
 import Rentals from "./pages/user/Rentals";
+import Cart from "./pages/user/Cart";
+import Orders from "./pages/user/Orders";
+import Profile from "./pages/user/Profile";
 
-// Admin
+// ADMIN
 import Dashboard from "./pages/admin/Dashboard";
-import AdminRentals from "./pages/admin/Rentals";
 import AdminProducts from "./pages/admin/Products";
-
-// Navbar
-import Navbar from "./components/Navbar";
+import AdminRentals from "./pages/admin/Rentals";
 
 function App() {
   return (
@@ -24,20 +25,22 @@ function App() {
       <Navbar />
 
       <Routes>
-        {/* Auth */}
+        {/* AUTH */}
+        <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
-        {/* User */}
-        <Route path="/" element={<Products />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/checkout" element={<Checkout />} />
+        {/* USER */}
+        <Route path="/products" element={<Products />} />
         <Route path="/rentals" element={<Rentals />} />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/orders" element={<Orders />} />
+        <Route path="/profile" element={<Profile />} />
 
-        {/* Admin */}
-        <Route path="/admin" element={<Dashboard />} />
-        <Route path="/admin/rentals" element={<Rentals />} />
-        <Route path="/admin/products" element={<Products />} />
+        {/* ADMIN */}
+        <Route path="/admin/dashboard" element={<Dashboard />} />
+        <Route path="/admin/products" element={<AdminProducts />} />
+        <Route path="/admin/rentals" element={<AdminRentals />} />
       </Routes>
     </BrowserRouter>
   );
