@@ -1,29 +1,95 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
-export default function Navbar() {
-  const logout = () => {
-    localStorage.removeItem("token");
-    window.location = "/login";
-  };
+function Navbar() {
+    const navigate = useNavigate();
 
-  return (
-    <div className="flex justify-between px-8 py-4 bg-white shadow">
-      <h1 className="text-xl font-bold text-blue-600">Rental App</h1>
+    const token = localStorage.getItem("token");
 
-      <div className="flex gap-6">
-        <Link to="/">Home</Link>
-        <Link to="/products">Products</Link>
-        <Link to="/cart">Cart</Link>
-        <Link to="/rentals">Rentals</Link>
-        <Link to="/admin/dashboard">Admin</Link>
+    let user = null;
 
-        <button
-          onClick={logout}
-          className="bg-red-500 text-white px-3 py-1 rounded"
-        >
-          Logout
-        </button>
-      </div>
-    </div>
-  );
+    try {
+        user = JSON.parse(
+            localStorage.getItem("user") || "null"
+        );
+    } catch {
+        user = null;
+    }
+
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
+        navigate("/login");
+    };
+
+    return (
+        <nav className="sticky top-0 z-50 border-b border-slate-200 bg-white shadow-sm">
+
+            <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+
+                <Link
+                    to="/"
+                    className="text-2xl font-bold text-blue-600"
+                >
+                    RentalMS
+                </Link>
+
+                <div className="flex items-center gap-6">
+
+                    <Link
+                        to="/"
+                        className="font-medium text-slate-600 hover:text-blue-600"
+                    >
+                        Home
+                    </Link>
+
+                    <Link
+                        to="/products"
+                        className="font-medium text-slate-600 hover:text-blue-600"
+                    >
+                        Products
+                    </Link>
+
+                    {token && (
+                        <Link
+                            to="/rentals"
+                            className="font-medium text-slate-600 hover:text-blue-600"
+                        >
+                            My Rentals
+                        </Link>
+                    )}
+
+                    {token && user?.role === "admin" && (
+                        <Link
+                            to="/admin/dashboard"
+                            className="font-medium text-slate-600 hover:text-blue-600"
+                        >
+                            Admin
+                        </Link>
+                    )}
+
+                    {token ? (
+                        <button
+                            onClick={handleLogout}
+                            className="rounded-lg bg-red-500 px-4 py-2 font-semibold text-white hover:bg-red-600"
+                        >
+                            Logout
+                        </button>
+                    ) : (
+                        <Link
+                            to="/login"
+                            className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700"
+                        >
+                            Login
+                        </Link>
+                    )}
+
+                </div>
+
+            </div>
+
+        </nav>
+    );
 }
+
+export default Navbar;

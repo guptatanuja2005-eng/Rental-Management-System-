@@ -9,6 +9,7 @@ import Signup from "./pages/auth/Signup";
 // USER
 import Home from "./pages/user/Home";
 import Products from "./pages/user/Products";
+import Booking from "./pages/user/Booking";
 import Rentals from "./pages/user/Rentals";
 import Cart from "./pages/user/Cart";
 import Orders from "./pages/user/Orders";
@@ -20,30 +21,83 @@ import AdminProducts from "./pages/admin/Products";
 import AdminRentals from "./pages/admin/Rentals";
 
 function App() {
-  return (
-    <BrowserRouter>
-      <Navbar />
+    return (
+        <BrowserRouter>
 
-      <Routes>
-        {/* AUTH */}
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+            <Navbar />
 
-        {/* USER */}
-        <Route path="/products" element={<Products />} />
-        <Route path="/rentals" element={<Rentals />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/orders" element={<Orders />} />
-        <Route path="/profile" element={<Profile />} />
+            <main>
+                <Routes>
 
-        {/* ADMIN */}
-        <Route path="/admin/dashboard" element={<Dashboard />} />
-        <Route path="/admin/products" element={<AdminProducts />} />
-        <Route path="/admin/rentals" element={<AdminRentals />} />
-      </Routes>
-    </BrowserRouter>
-  );
+                    {/* HOME */}
+                    <Route
+                        path="/"
+                        element={<Home />}
+                    />
+
+                    {/* AUTH */}
+                    <Route
+                        path="/login"
+                        element={<Login />}
+                    />
+
+                    <Route
+                        path="/signup"
+                        element={<Signup />}
+                    />
+
+                    {/* USER */}
+                    <Route
+                        path="/products"
+                        element={<Products />}
+                    />
+
+                    <Route
+                        path="/booking"
+                        element={<Booking />}
+                    />
+
+                    <Route
+                        path="/rentals"
+                        element={<Rentals />}
+                    />
+
+                    <Route
+                        path="/cart"
+                        element={<Cart />}
+                    />
+
+                    <Route
+                        path="/orders"
+                        element={<Orders />}
+                    />
+
+                    <Route
+                        path="/profile"
+                        element={<Profile />}
+                    />
+
+                    {/* ADMIN */}
+                    <Route
+                        path="/admin/dashboard"
+                        element={<Dashboard />}
+                    />
+
+                    <Route
+                        path="/admin/products"
+                        element={<AdminProducts />}
+                    />
+
+                    <Route
+                        path="/admin/rentals"
+                        element={<AdminRentals />}
+                    />
+
+                </Routes>
+            </main>
+
+        </BrowserRouter>
+    );
 }
 
 export default App;

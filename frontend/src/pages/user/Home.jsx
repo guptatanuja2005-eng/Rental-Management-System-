@@ -1,72 +1,103 @@
 import { Link } from "react-router-dom";
 
-export default function Home() {
-  return (
-    <div className="bg-gray-50 min-h-screen">
+function Home() {
+    const token = localStorage.getItem("token");
 
-      {/* HERO SECTION */}
-      <div className="flex flex-col items-center justify-center text-center h-[80vh] px-6">
-        <h1 className="text-5xl font-bold text-blue-600 mb-4">
-          Rent Anything, Anytime 🚀
-        </h1>
+    return (
+        <div className="min-h-screen bg-slate-50">
 
-        <p className="text-gray-600 text-lg max-w-xl">
-          Your one-stop platform to rent products easily. Fast, secure, and reliable.
-        </p>
+            <section className="bg-blue-600 px-6 py-24 text-white">
 
-        <div className="mt-6 flex gap-4">
-          <Link
-            to="/products"
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
-          >
-            Explore Products
-          </Link>
+                <div className="mx-auto max-w-5xl text-center">
 
-          <Link
-            to="/login"
-            className="border border-blue-600 text-blue-600 px-6 py-3 rounded-lg hover:bg-blue-100"
-          >
-            Login
-          </Link>
+                    <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-blue-200">
+                        Company Equipment Rental
+                    </p>
+
+                    <h1 className="text-5xl font-bold tracking-tight md:text-6xl">
+                        Rental Management System
+                    </h1>
+
+                    <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-blue-100">
+                        Easily rent, manage and return
+                        company equipment from one place.
+                    </p>
+
+                    <div className="mt-8 flex justify-center gap-4">
+
+                        <Link
+                            to="/products"
+                            className="rounded-lg bg-white px-6 py-3 font-semibold text-blue-600 shadow hover:bg-blue-50"
+                        >
+                            Browse Products
+                        </Link>
+
+                        {!token && (
+                            <Link
+                                to="/login"
+                                className="rounded-lg border border-white px-6 py-3 font-semibold text-white hover:bg-blue-700"
+                            >
+                                Login
+                            </Link>
+                        )}
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            <section className="mx-auto grid max-w-6xl gap-6 px-6 py-16 md:grid-cols-3">
+
+                <div className="rounded-xl bg-white p-8 shadow-sm ring-1 ring-slate-200">
+                    <div className="mb-4 text-3xl">
+                        📦
+                    </div>
+
+                    <h2 className="text-xl font-bold">
+                        Browse
+                    </h2>
+
+                    <p className="mt-3 leading-7 text-slate-600">
+                        View available company equipment,
+                        rental prices and stock.
+                    </p>
+                </div>
+
+                <div className="rounded-xl bg-white p-8 shadow-sm ring-1 ring-slate-200">
+                    <div className="mb-4 text-3xl">
+                        🗓️
+                    </div>
+
+                    <h2 className="text-xl font-bold">
+                        Rent
+                    </h2>
+
+                    <p className="mt-3 leading-7 text-slate-600">
+                        Select dates and quantity and
+                        instantly calculate the rental cost.
+                    </p>
+                </div>
+
+                <div className="rounded-xl bg-white p-8 shadow-sm ring-1 ring-slate-200">
+                    <div className="mb-4 text-3xl">
+                        ✓
+                    </div>
+
+                    <h2 className="text-xl font-bold">
+                        Return
+                    </h2>
+
+                    <p className="mt-3 leading-7 text-slate-600">
+                        Track your rentals and return
+                        equipment when you're finished.
+                    </p>
+                </div>
+
+            </section>
+
         </div>
-      </div>
-
-      {/* FEATURES SECTION */}
-      <div className="px-10 py-12 bg-white">
-        <h2 className="text-3xl font-bold text-center mb-10">
-          Why Choose Us?
-        </h2>
-
-        <div className="grid md:grid-cols-3 gap-8">
-
-          <div className="p-6 shadow rounded-lg text-center">
-            <h3 className="text-xl font-semibold mb-2">⚡ Fast Booking</h3>
-            <p className="text-gray-500">
-              Rent products instantly with a smooth process.
-            </p>
-          </div>
-
-          <div className="p-6 shadow rounded-lg text-center">
-            <h3 className="text-xl font-semibold mb-2">🔒 Secure Payments</h3>
-            <p className="text-gray-500">
-              Your transactions are safe and protected.
-            </p>
-          </div>
-
-          <div className="p-6 shadow rounded-lg text-center">
-            <h3 className="text-xl font-semibold mb-2">📦 Wide Range</h3>
-            <p className="text-gray-500">
-              Choose from a variety of rental products.
-            </p>
-          </div>
-
-        </div>
-      </div>
-
-      {/* FOOTER */}
-      <div className="bg-gray-900 text-white text-center py-4 mt-10">
-        <p>© 2026 Rental App. All rights reserved.</p>
-      </div>
-    </div>
-  );
+    );
 }
+
+export default Home;
