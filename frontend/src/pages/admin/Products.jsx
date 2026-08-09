@@ -1,166 +1,116 @@
-import { useEffect, useState } from "react";
-import API from "../../services/api";
+import { useEffect, useState } from 'react';
+import { api } from '../../api';
 
-function AdminProducts() {
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+const emptyForm = { name: '', category: '', price: '', image_url: '' };
 
-    useEffect(() => {
-        const loadProducts = async () => {
-            try {
-                const response =
-                    await API.get("/products");
+export default function Products() {
+  const [products, setProducts] = useState([]);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState(emptyForm);
+  const [error, setError] = useState('');
 
-                setProducts(response.data);
+  function load() {
+    api('/products').then((data) => setProducts(data.products));
+  }
 
-            } catch (error) {
-                console.error(error);
+  useEffect(load, []);
 
-                setError(
-                    error.response?.data?.message ||
-                    "Could not load products."
-                );
-            } finally {
-                setLoading(false);
-            }
-        };
+  function startAdd() {
+    setEditing('new');
+    setForm(emptyForm);
+  }
 
-        loadProducts();
-    }, []);
+  function startEdit(p) {
+    setEditing(p.id);
+    setForm({ name: p.name, category: p.category, price: p.price, image_url: p.image_url });
+  }
 
-    if (loading) {
-        return (
-            <div className="px-6 py-16 text-center">
-                <p className="text-slate-500">
-                    Loading inventory...
-                </p>
-            </div>
-        );
+  async function save(e) {
+    e.preventDefault();
+    setError('');
+    const body = { ...form, price: Number(form.price) };
+    try {
+      if (editing === 'new') await api('/products', { method: 'POST', body });
+      else await api(`/products/${editing}`, { method: 'PUT', body });
+      setEditing(null);
+      load();
+    } catch (err) {
+      setError(err.message);
     }
+  }
 
-    return (
-        <div className="min-h-screen bg-slate-50 px-6 py-12">
+  async function remove(p) {
+    if (!confirm(`Delete "${p.name}"? Its rentals will be deleted too.`)) return;
+    await api(`/products/${p.id}`, { method: 'DELETE' });
+    load();
+  }
 
-            <div className="mx-auto max-w-7xl">
-
-                <p className="text-sm font-semibold uppercase tracking-wider text-blue-600">
-                    Administration
-                </p>
-
-                <h1 className="mt-2 text-4xl font-bold">
-                    Product Inventory
-                </h1>
-
-                <p className="mt-3 text-slate-600">
-                    Monitor equipment availability and pricing.
-                </p>
-
-                {error && (
-                    <div className="mt-6 rounded-lg bg-red-50 p-4 text-red-700">
-                        {error}
-                    </div>
-                )}
-
-                <div className="mt-8 overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-
-                    <div className="overflow-x-auto">
-
-                        <table className="w-full text-left">
-
-                            <thead className="bg-slate-100 text-sm text-slate-600">
-
-                                <tr>
-
-                                    <th className="px-6 py-4">
-                                        Product
-                                    </th>
-
-                                    <th className="px-6 py-4">
-                                        Category
-                                    </th>
-
-                                    <th className="px-6 py-4">
-                                        Price / Day
-                                    </th>
-
-                                    <th className="px-6 py-4">
-                                        Total
-                                    </th>
-
-                                    <th className="px-6 py-4">
-                                        Available
-                                    </th>
-
-                                    <th className="px-6 py-4">
-                                        Status
-                                    </th>
-
-                                </tr>
-
-                            </thead>
-
-                            <tbody className="divide-y divide-slate-100">
-
-                                {products.map((product) => (
-
-                                    <tr
-                                        key={product.id}
-                                        className="hover:bg-slate-50"
-                                    >
-
-                                        <td className="px-6 py-5">
-
-                                            <p className="font-semibold">
-                                                {product.name}
-                                            </p>
-
-                                            <p className="mt-1 text-sm text-slate-500">
-                                                {product.description}
-                                            </p>
-
-                                        </td>
-
-                                        <td className="px-6 py-5 text-slate-600">
-                                            {product.category}
-                                        </td>
-
-                                        <td className="px-6 py-5 font-semibold">
-                                            ₹{product.price_per_day}
-                                        </td>
-
-                                        <td className="px-6 py-5 text-slate-600">
-                                            {product.total_quantity}
-                                        </td>
-
-                                        <td className="px-6 py-5 font-semibold">
-                                            {product.available_quantity}
-                                        </td>
-
-                                        <td className="px-6 py-5">
-
-                                            <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
-                                                {product.status}
-                                            </span>
-
-                                        </td>
-
-                                    </tr>
-
-                                ))}
-
-                            </tbody>
-
-                        </table>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-    );
+  return (
+    <div>
+      <div className="row-between">
+        <h2>Products</h2>
+        <button className="btn btn-primary" onClick={startAdd}>Add product</button>
+      </div>
+      {error && <p className="alert alert-error">{error}</p>}
+      {editing !== null && (
+        <form className="card form-grid" onSubmit={save}>
+          <h3>{editing === 'new' ? 'Add product' : 'Edit product'}</h3>
+          <input
+            placeholder="Name"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            required
+          />
+          <input
+            placeholder="Category"
+            value={form.category}
+            onChange={(e) => setForm({ ...form, category: e.target.value })}
+            required
+          />
+          <input
+            placeholder="Price (₹)"
+            type="number"
+            min="0"
+            value={form.price}
+            onChange={(e) => setForm({ ...form, price: e.target.value })}
+            required
+          />
+          <input
+            placeholder="Image URL"
+            value={form.image_url}
+            onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+          />
+          <div className="row">
+            <button className="btn btn-primary" type="submit">Save</button>
+            <button className="btn" type="button" onClick={() => setEditing(null)}>Cancel</button>
+          </div>
+        </form>
+      )}
+      <table className="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {products.map((p) => (
+            <tr key={p.id}>
+              <td>{p.id}</td>
+              <td>{p.name}</td>
+              <td>{p.category}</td>
+              <td>₹{Number(p.price).toLocaleString('en-IN')}</td>
+              <td>
+                <button className="btn btn-small" onClick={() => startEdit(p)}>Edit</button>
+                <button className="btn btn-small btn-danger" onClick={() => remove(p)}>Delete</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
-
-export default AdminProducts;

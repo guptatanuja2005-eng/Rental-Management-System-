@@ -1,504 +1,110 @@
-const pool = require("../db/db");
-const {
-    mockProducts,
-    mockRentals
-} = require("../db/mockDb");
-
-
-// =========================
-// CREATE RENTAL
-// =========================
-
-const createRental = async (req, res) => {
-    try {
-        const userId = req.user.id;
-
-        const {
-            productId,
-            quantity,
-            startDate,
-            endDate
-        } = req.body;
-
-        // -------------------------
-        // VALIDATION
-        // -------------------------
-
-        if (
-            !productId ||
-            !quantity ||
-            !startDate ||
-            !endDate
-        ) {
-            return res.status(400).json({
-                message:
-                    "Product, quantity, start date and end date are required"
-            });
-        }
-
-        if (quantity <= 0) {
-            return res.status(400).json({
-                message: "Quantity must be greater than 0"
-            });
-        }
-
-        if (new Date(endDate) < new Date(startDate)) {
-            return res.status(400).json({
-                message:
-                    "Return date cannot be before start date"
-            });
-        }
-
-
-        // =========================
-        // MOCK DATABASE MODE
-        // =========================
-
-        if (process.env.USE_MOCK_DB === "true") {
-
-            const product = mockProducts.find(
-                (p) => p.id === Number(productId)
-            );
-
-            // Product doesn't exist
-            if (!product) {
-                return res.status(404).json({
-                    message: "Product not found"
-                });
-            }
-
-            // Insufficient stock
-            if (
-                product.available_quantity < quantity
-            ) {
-                return res.status(400).json({
-                    message: "Insufficient stock",
-                    availableQuantity:
-                        product.available_quantity
-                });
-            }
-
-            const start = new Date(startDate);
-            const end = new Date(endDate);
-
-            const duration =
-                Math.ceil(
-                    (end - start) /
-                    (1000 * 60 * 60 * 24)
-                ) || 1;
-
-            const rentalAmount =
-                Number(product.price_per_day) *
-                duration *
-                quantity;
-
-            const depositAmount =
-                Number(product.security_deposit) *
-                quantity;
-
-            const rental = {
-                id: mockRentals.length + 1,
-
-                user_id: userId,
-
-                product_id: product.id,
-
-                product_name: product.name,
-
-                quantity,
-
-                start_date: startDate,
-
-                end_date: endDate,
-
-                duration,
-
-                rental_amount: rentalAmount,
-
-                deposit_amount: depositAmount,
-
-                status: "active"
-            };
-
-            mockRentals.push(rental);
-
-            // Decrease stock
-            product.available_quantity -= quantity;
-
-            // Update product status
-            if (product.available_quantity === 0) {
-                product.status = "unavailable";
-            }
-
-            return res.status(201).json({
-                message:
-                    "Rental created successfully",
-
-                rental,
-
-                remainingStock:
-                    product.available_quantity
-            });
-        }
-
-
-        // =========================
-        // REAL POSTGRESQL MODE
-        // =========================
-
-        const client = await pool.connect();
-
-        try {
-
-            const productResult = await client.query(
-                "SELECT * FROM products WHERE id = $1",
-                [productId]
-            );
-
-            if (productResult.rows.length === 0) {
-                return res.status(404).json({
-                    message: "Product not found"
-                });
-            }
-
-            const product = productResult.rows[0];
-
-            if (
-                product.available_quantity < quantity
-            ) {
-                return res.status(400).json({
-                    message: "Insufficient stock",
-                    availableQuantity:
-                        product.available_quantity
-                });
-            }
-
-            const start = new Date(startDate);
-            const end = new Date(endDate);
-
-            const duration =
-                Math.ceil(
-                    (end - start) /
-                    (1000 * 60 * 60 * 24)
-                ) || 1;
-
-            const rentalAmount =
-                Number(product.price_per_day) *
-                duration *
-                quantity;
-
-            const depositAmount =
-                Number(product.security_deposit) *
-                quantity;
-
-            await client.query("BEGIN");
-
-            const orderResult = await client.query(
-                `INSERT INTO rental_orders
-                (
-                    user_id,
-                    start_date,
-                    end_date,
-                    rental_amount,
-                    deposit_amount
-                )
-                VALUES ($1, $2, $3, $4, $5)
-                RETURNING *`,
-                [
-                    userId,
-                    startDate,
-                    endDate,
-                    rentalAmount,
-                    depositAmount
-                ]
-            );
-
-            const rentalOrder =
-                orderResult.rows[0];
-
-            await client.query(
-                `INSERT INTO rental_items
-                (
-                    rental_order_id,
-                    product_id,
-                    quantity,
-                    price_per_day
-                )
-                VALUES ($1, $2, $3, $4)`,
-                [
-                    rentalOrder.id,
-                    productId,
-                    quantity,
-                    product.price_per_day
-                ]
-            );
-
-            await client.query(
-                `UPDATE products
-                 SET available_quantity =
-                     available_quantity - $1
-                 WHERE id = $2`,
-                [
-                    quantity,
-                    productId
-                ]
-            );
-
-            await client.query("COMMIT");
-
-            res.status(201).json({
-                message:
-                    "Rental created successfully",
-
-                rental: rentalOrder,
-
-                duration,
-
-                rentalAmount,
-
-                depositAmount
-            });
-
-        } catch (error) {
-
-            await client.query("ROLLBACK");
-
-            throw error;
-
-        } finally {
-
-            client.release();
-        }
-
-    } catch (error) {
-
-        console.error(
-            "Create rental error:",
-            error
-        );
-
-        res.status(500).json({
-            message:
-                "Failed to create rental"
-        });
-    }
-};
-
-
-// =========================
-// GET USER RENTALS
-// =========================
-
-const getMyRentals = async (req, res) => {
-
-    try {
-
-        const userId = req.user.id;
-
-        // MOCK MODE
-        if (process.env.USE_MOCK_DB === "true") {
-
-            const rentals =
-                mockRentals.filter(
-                    (rental) =>
-                        rental.user_id === userId
-                );
-
-            return res.json(rentals);
-        }
-
-        // REAL DATABASE
-        const result = await pool.query(
-            `SELECT *
-             FROM rental_orders
-             WHERE user_id = $1
-             ORDER BY created_at DESC`,
-            [userId]
-        );
-
-        res.json(result.rows);
-
-    } catch (error) {
-
-        console.error(error);
-
-        res.status(500).json({
-            message:
-                "Failed to fetch rentals"
-        });
-    }
-};
-
-const returnRental = async (req, res) => {
-    try {
-        const rentalId = Number(req.params.id);
-        const userId = req.user.id;
-
-        // =========================
-        // MOCK DATABASE MODE
-        // =========================
-
-        if (process.env.USE_MOCK_DB === "true") {
-
-            const rental = mockRentals.find(
-                (r) => r.id === rentalId
-            );
-
-            if (!rental) {
-                return res.status(404).json({
-                    message: "Rental not found"
-                });
-            }
-
-            // Only owner can return it
-            if (
-                rental.user_id !== userId &&
-                req.user.role !== "admin"
-            ) {
-                return res.status(403).json({
-                    message: "Not authorized to return this rental"
-                });
-            }
-
-            // Already returned
-            if (rental.status === "returned") {
-                return res.status(400).json({
-                    message: "Rental already returned"
-                });
-            }
-
-            const product = mockProducts.find(
-                (p) => p.id === rental.product_id
-            );
-
-            if (!product) {
-                return res.status(404).json({
-                    message: "Product not found"
-                });
-            }
-
-            // Return stock
-            product.available_quantity += rental.quantity;
-
-            if (product.available_quantity > 0) {
-                product.status = "available";
-            }
-
-            rental.status = "returned";
-            rental.returned_at = new Date();
-
-            return res.json({
-                message: "Rental returned successfully",
-                rental,
-                availableQuantity:
-                    product.available_quantity
-            });
-        }
-
-
-        // =========================
-        // REAL POSTGRESQL MODE
-        // =========================
-
-        const client = await pool.connect();
-
-        try {
-
-            const rentalResult = await client.query(
-                `SELECT *
-                 FROM rental_orders
-                 WHERE id = $1`,
-                [rentalId]
-            );
-
-            if (rentalResult.rows.length === 0) {
-                return res.status(404).json({
-                    message: "Rental not found"
-                });
-            }
-
-            const rental = rentalResult.rows[0];
-
-            // Ownership check
-            if (
-                rental.user_id !== userId &&
-                req.user.role !== "admin"
-            ) {
-                return res.status(403).json({
-                    message: "Not authorized to return this rental"
-                });
-            }
-
-            if (rental.status === "returned") {
-                return res.status(400).json({
-                    message: "Rental already returned"
-                });
-            }
-
-            const itemsResult = await client.query(
-                `SELECT product_id, quantity
-                 FROM rental_items
-                 WHERE rental_order_id = $1`,
-                [rentalId]
-            );
-
-            await client.query("BEGIN");
-
-            for (const item of itemsResult.rows) {
-
-                await client.query(
-                    `UPDATE products
-                     SET available_quantity =
-                         available_quantity + $1
-                     WHERE id = $2`,
-                    [
-                        item.quantity,
-                        item.product_id
-                    ]
-                );
-            }
-
-            await client.query(
-                `UPDATE rental_orders
-                 SET status = 'returned'
-                 WHERE id = $1`,
-                [rentalId]
-            );
-
-            await client.query("COMMIT");
-
-            res.json({
-                message:
-                    "Rental returned successfully"
-            });
-
-        } catch (error) {
-
-            await client.query("ROLLBACK");
-
-            throw error;
-
-        } finally {
-
-            client.release();
-        }
-
-    } catch (error) {
-
-        console.error(
-            "Return rental error:",
-            error
-        );
-
-        res.status(500).json({
-            message:
-                "Failed to return rental"
-        });
-    }
-};
-
-module.exports = {
-    createRental,
-    getMyRentals,
-    returnRental
-};
+import pool from '../db/db.js';
+
+export async function createRental(req, res) {
+  const { product_id, quantity } = req.body;
+  const { rows } = await pool.query('SELECT id, name, price FROM products WHERE id = $1', [product_id]);
+  const product = rows[0];
+  if (!product) return res.status(404).json({ error: 'Product not found' });
+  const qty = quantity || 1;
+  const result = await pool.query(
+    `INSERT INTO rentals (user_id, product_id, product_name, quantity, amount)
+     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+    [req.user.id, product.id, product.name, qty, product.price * qty]
+  );
+  res.status(201).json({ rental: result.rows[0] });
+}
+
+export async function listRentals(req, res) {
+  if (req.user.role === 'admin') {
+    const { rows } = await pool.query(
+      `SELECT r.*, u.name AS user_name, u.email AS user_email,
+              p.method AS payment_method, p.paid_at, i.invoice_number
+       FROM rentals r
+       JOIN users u ON u.id = r.user_id
+       LEFT JOIN payments p ON p.rental_id = r.id
+       LEFT JOIN invoices i ON i.rental_id = r.id
+       ORDER BY r.created_at DESC`
+    );
+    return res.json({ rentals: rows });
+  }
+  const { rows } = await pool.query(
+    `SELECT r.*, p.method AS payment_method, p.paid_at, i.invoice_number
+     FROM rentals r
+     LEFT JOIN payments p ON p.rental_id = r.id
+     LEFT JOIN invoices i ON i.rental_id = r.id
+     WHERE r.user_id = $1
+     ORDER BY r.created_at DESC`,
+    [req.user.id]
+  );
+  res.json({ rentals: rows });
+}
+
+export async function getRental(req, res) {
+  const { rows } = await pool.query('SELECT * FROM rentals WHERE id = $1', [req.params.id]);
+  const rental = rows[0];
+  if (!rental) return res.status(404).json({ error: 'Rental not found' });
+  if (req.user.role !== 'admin' && rental.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Not your rental' });
+  }
+  res.json({ rental });
+}
+
+export async function getInvoice(req, res) {
+  const { rows } = await pool.query(
+    `SELECT r.id, r.user_id, r.product_name, r.quantity, r.amount, r.status, r.created_at,
+            u.name AS user_name, u.email AS user_email,
+            p.method AS payment_method, p.paid_at,
+            i.invoice_number, i.issued_at
+     FROM rentals r
+     JOIN users u ON u.id = r.user_id
+     LEFT JOIN payments p ON p.rental_id = r.id
+     LEFT JOIN invoices i ON i.rental_id = r.id
+     WHERE r.id = $1`,
+    [req.params.id]
+  );
+  const row = rows[0];
+  if (!row) return res.status(404).json({ error: 'Rental not found' });
+  if (req.user.role !== 'admin' && row.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Not your rental' });
+  }
+  if (!row.invoice_number) return res.status(400).json({ error: 'Not paid yet' });
+  res.json({ invoice: row });
+}
+
+export async function payRental(req, res) {
+  const { method } = req.body;
+  const methods = ['UPI', 'Card', 'Cash on Pickup', 'Mock Payment'];
+  if (!methods.includes(method)) {
+    return res.status(400).json({ error: 'Invalid payment method' });
+  }
+  const { rows } = await pool.query(
+    `SELECT * FROM rentals WHERE id = $1 AND user_id = $2 AND status = 'pending'`,
+    [req.params.id, req.user.id]
+  );
+  const rental = rows[0];
+  if (!rental) return res.status(404).json({ error: 'Pending rental not found' });
+
+  const payment = await pool.query(
+    `INSERT INTO payments (rental_id, amount, method) VALUES ($1, $2, $3) RETURNING *`,
+    [rental.id, rental.amount, method]
+  );
+  const invoiceNumber = `INV-${String(rental.id).padStart(4, '0')}`;
+  const invoice = await pool.query(
+    `INSERT INTO invoices (rental_id, invoice_number, amount) VALUES ($1, $2, $3) RETURNING *`,
+    [rental.id, invoiceNumber, rental.amount]
+  );
+  await pool.query(`UPDATE rentals SET status = 'active' WHERE id = $1`, [rental.id]);
+
+  res.status(201).json({ payment: payment.rows[0], invoice: invoice.rows[0] });
+}
+
+export async function returnRental(req, res) {
+  const { rows } = await pool.query(
+    `UPDATE rentals SET status = 'returned', returned_at = now()
+     WHERE id = $1 AND status = 'active'
+     RETURNING *`,
+    [req.params.id]
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'Active rental not found' });
+  res.json({ rental: rows[0] });
+}

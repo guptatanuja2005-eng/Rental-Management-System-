@@ -31,8 +31,20 @@ const mockProducts = [
         total_quantity: 2,
         available_quantity: 2,
         status: "available"
+    },
+    {
+        id: 4,
+        name: 'City Bike 26"',
+        description: "Lightweight city commuter bike.",
+        category: "Cycles",
+        price_per_day: 200,
+        security_deposit: 2000,
+        total_quantity: 6,
+        available_quantity: 6,
+        status: "available"
     }
 ];
+
 
 const mockUsers = [
     {
@@ -49,7 +61,9 @@ const mockUsers = [
     }
 ];
 
+
 const mockRentals = [];
+
 
 module.exports = {
     mockProducts,
